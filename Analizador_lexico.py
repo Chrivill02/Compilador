@@ -45,44 +45,57 @@ class Parser:
         self.funcion()
 
     def funcion(self):
-        self.coincidir("KEYWORD")  # Tipo de retorno (ej. int)
-        self.coincidir("IDENTIFIER")  # Nombre de la función
+        tipo_retorno = self.coincidir("KEYWORD")  # Tipo de retorno (ej. int)
+        nombre_funcion = self.coincidir("IDENTIFIER")  # Nombre de la función
         self.coincidir("DELIMITER")  # Se espera '('
-        self.parametros()
+        parametros = self.parametros()
         self.coincidir("DELIMITER")  # Se espera ')'
-
+        
         # Asegurar que se consume `{`
         self.coincidir("DELIMITER")  # Consumir `{`, sin necesidad de chequeo adicional
 
         self.cuerpo()  # Analizar el cuerpo de la función
         self.coincidir("DELIMITER")  # Se espera `}`
+        return NodoFuncion(nombre_funcion, lista_parametros, cuerpo)
+    
 
     def parametros(self):
+        parametros = []
         # Si hay al menos un parámetro, procesarlo
         if self.obtener_token_actual() and self.obtener_token_actual()[0] == "KEYWORD":
-            self.coincidir("KEYWORD")  # Tipo del parámetro (ej. int)
-            self.coincidir("IDENTIFIER")  # Nombre del parámetro (ej. a)
-
+            tipo = self.coincidir("KEYWORD")  # Tipo del parámetro (ej. int)
+            nombre = self.coincidir("IDENTIFIER")  # Nombre del parámetro (ej. a)
+            parametros.append(NodoParametro(tipo, nombre))
             # Mientras haya una coma, seguir procesando más parámetros
             while self.obtener_token_actual() and self.obtener_token_actual()[1] == ",":
                 self.coincidir("DELIMITER")  # Consumir la coma
-                self.coincidir("KEYWORD")  # Consumir el tipo del siguiente parámetro
-                self.coincidir("IDENTIFIER")  # Consumir el nombre del siguiente parámetro
-
+                tipo = self.coincidir("KEYWORD")  # Consumir el tipo del siguiente parámetro
+                nombre = self.coincidir("IDENTIFIER")  # Consumir el nombre del siguiente parámetro
+                parametros.append(NodoParametro(tipo, nombre))
+            return parametros
     def asignacion(self):
+
         self.coincidir("KEYWORD")  # Tipo de dato (ej. int)
         self.coincidir("IDENTIFIER")  # Nombre de la variable
 
         # Aceptar operadores compuestos o el '=' simple
         if self.obtener_token_actual()[1] in ("=", "+=", "-=", "*=", "/="):
             self.coincidir("OPERATOR")  # Consumir el operador de asignación
-            self.expresion()  # Procesar la expresión de asignación
+            expresion = self.expresion()  # Procesar la expresión de asignación
             self.coincidir("DELIMITER")  # Se espera ";"
+            return NodoAsignacion(nombre, expresion)
         else:
             raise SyntaxError(
                 f"Error Sintáctico: Se esperaba un operador de asignación, pero se encontró {self.obtener_token_actual()}")
-
+    def expresion_ing(self):
+        izquierda = self.termino()
+        while self.obtener_token_actual() and self.obtener_token_actual()[0] == "OPERATOR":
+            operador = self.coincidir("OPERADOR")
+            derecha = self.termino()
+            izquierda = NodoOperacion(izquierda, operador, derecha)
+            
     def expresion(self):
+
         self.expresion_aritmetica()
         # Si después de una expresión aritmética hay un operador relacional, procesarlo
         while self.obtener_token_actual() and self.obtener_token_actual()[1] in ('>', '<', '>=', '<=', '==', '!='):
@@ -120,11 +133,17 @@ class Parser:
 
     def retorno(self):
         self.coincidir("KEYWORD")  # Consumir `return`
-        self.expresion()  # Procesar la expresión de retorno
+        expresion = self.expresion()  # Procesar la expresión de retorno
         self.coincidir("DELIMITER")  # Consumir `;`
-
+        return NodoRetorno(expresion)
     def cuerpo(self):
+        instrucciones = []
         while self.obtener_token_actual() and self.obtener_token_actual()[1] != "}":
+            if self.obtener_token_actual()[1] == "return":
+                instrucciones.append(self.retorno())
+            else:
+                instrucciones.append(self.asignacion())
+        
             token_actual = self.obtener_token_actual()
 
             if token_actual[0] == "KEYWORD":
@@ -144,6 +163,7 @@ class Parser:
                 self.asignacion_simple()  # Asignación o incremento simple
             else:
                 raise Exception(f"Error Sintáctico inesperado: {token_actual}")
+        return instrucciones 
 
     def asignacion_simple(self):
         self.coincidir("IDENTIFIER")  # Consumir la variable
