@@ -1,3 +1,4 @@
+
 class NodoAST:
     #Clase base para todos los nodos del AST
     pass
@@ -29,6 +30,7 @@ class NodoRetorno(NodoAST):
     #Nodo que representa a la sentencia return
     def __init__(self, expresion):
         self.expresion = expresion
+        
 class NodoIdentificador(NodoAST):
     def __init__(self, nombre):
         self.nombre = nombre

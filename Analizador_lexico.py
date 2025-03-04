@@ -75,8 +75,8 @@ class Parser:
             return parametros
     def asignacion(self):
 
-        self.coincidir("KEYWORD")  # Tipo de dato (ej. int)
-        self.coincidir("IDENTIFIER")  # Nombre de la variable
+        tipo = self.coincidir("KEYWORD")  # Tipo de dato (ej. int)
+        nombre = self.coincidir("IDENTIFIER")  # Nombre de la variable
 
         # Aceptar operadores compuestos o el '=' simple
         if self.obtener_token_actual()[1] in ("=", "+=", "-=", "*=", "/="):
