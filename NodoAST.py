@@ -47,9 +47,7 @@ class NodoWhile(NodoAST):
         self.condicion = condicion  # Expresión booleana
         self.cuerpo = cuerpo  # Lista de instrucciones dentro del while
 
-# -----------------------------
-# FUNCIÓN PARA IMPRIMIR AST
-# -----------------------------
+
 def imprimir_ast(nodo):
     if isinstance(nodo, NodoPrograma):
         return {'Programa': [imprimir_ast(func) for func in nodo.funciones]}
@@ -76,10 +74,8 @@ def imprimir_ast(nodo):
         return {'While': imprimir_ast(nodo.condicion),
                 'Cuerpo': [imprimir_ast(c) for c in nodo.cuerpo]}
     return {}
-# -----------------------------
-# EJEMPLO CON MÚLTIPLES INSTRUCCIONES EN EL CUERPO
-# -----------------------------
-funcion1 = NodoFuncion("operaciones", 
+
+funcionmain = NodoFuncion("Main", 
     [NodoParametro("int", "a"), NodoParametro("int", "b")], 
     [
         NodoAsignacion("resultado", NodoOperacion(NodoIdentificador("a"), "+", NodoIdentificador("b"))),
@@ -126,7 +122,7 @@ funcion4 = NodoFuncion("multiplicar_en_bucle",
     ]
 )
 
-programa = NodoPrograma([funcion1, funcion2, funcion3, funcion4])  # Nodo raíz con múltiples funciones
+programa = NodoPrograma([funcionmain, funcion2, funcion3, funcion4])  # Nodo raíz con múltiples funciones
 
 # Imprimir el AST
 print(json.dumps(imprimir_ast(programa), indent=2))
