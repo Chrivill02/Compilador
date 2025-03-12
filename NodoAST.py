@@ -30,6 +30,36 @@ class NodoOperacion(NodoAST):
         self.operador = operador
         self.derecha = derecha
 
+    def optimimzar(self):
+        if isinstance(self.izquierda, NodoOperacion):
+            izquierda = self.izquierda.optimizar()
+        if isinstance(self.derecha, NodoOperacion):
+            derecha = self.derecha.optimizar()
+
+        if isinstance(izquierda,NodoNumero) and isinstance(derecha, NodoNumero):
+            if self.operador == "+":
+                return NodoNumero(izquierda.valor + derecha.valor)
+            elif self.operador == "-":
+                return NodoNumero(izquierda.valor - derecha.valor)
+            elif self.operador == "*":
+                return NodoNumero(izquierda.valor * derecha.valor)
+            elif self.operador == "/" and derecha.valor != 0:
+                return NodoNumero(izquierda.valor / derecha.valor)
+            
+            #Simplificacion algebraica
+        if self.operador == "*" and isinstance(derecha, NodoNumero) and derecha.valor == 1:
+            return izquierda
+        if self.operador == "*" and isinstance(izquierda, NodoNumero) and izquierda.valor == 1:
+            return derecha
+        if self.operador == "+" and isinstance(derecha, NodoNumero) and derecha.valor == 0:
+            return izquierda
+        if self.operador == "+" and isinstance(izquierda, NodoNumero) and izquierda.valor == 0:
+            return derecha
+        
+        return NodoOperacion(izquierda, self.operador, derecha)
+    
+            
+    
 class NodoRetorno(NodoAST):
     def __init__(self, expresion):
         self.expresion = expresion
@@ -125,4 +155,8 @@ funcion4 = NodoFuncion("multiplicar_en_bucle",
 programa = NodoPrograma([funcionmain, funcion2, funcion3, funcion4])  # Nodo raíz con múltiples funciones
 
 # Imprimir el AST
-print(json.dumps(imprimir_ast(programa), indent=2))
+#print(json.dumps(imprimir_ast(programa), indent=2))
+
+
+nodo_exp = NodoOperacion(NodoNumero(5), "+", NodoNumero(8))
+print(json.dumps(imprimir_ast(nodo_exp), indent=1))
