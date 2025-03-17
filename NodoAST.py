@@ -3,6 +3,10 @@ import json
 class NodoAST:
     pass
 
+    def traducir(self):
+        raise NotImplementedError("Metodo traducir() no implementado en este nodo")
+    
+
 class NodoPrograma(NodoAST):
     """ Nodo raíz que contiene múltiples funciones """
     def __init__(self, funciones):
@@ -14,21 +18,37 @@ class NodoFuncion(NodoAST):
         self.parametros = parametros
         self.cuerpo = cuerpo  # Ahora el cuerpo es una lista de instrucciones
 
+    def traducir(self):
+        params = ",".join(p.tradurcir() for p in self.parametros)
+        cuerpo = "\n      ".join(c.traducir() for c in self.cuerpo)
+
 class NodoParametro(NodoAST):
+        
     def __init__(self, tipo, nombre):
         self.tipo = tipo
         self.nombre = nombre
+    
+    def traducir(self):
+        return self.nombre
 
 class NodoAsignacion(NodoAST):
     def __init__(self, nombre, expresion):
         self.nombre = nombre
         self.expresion = expresion
+    
+    def traducir(self):
+        return f"{self.nombre} = {self.expresion.traducir()}"
+    
 
 class NodoOperacion(NodoAST):
     def __init__(self, izquierda, operador, derecha):
         self.izquierda = izquierda
         self.operador = operador
         self.derecha = derecha
+
+    def traducir(self):
+        return f"{self.izquierda.traducir()} {self.operador}"
+    
 
     def optimimzar(self):
         if isinstance(self.izquierda, NodoOperacion):
