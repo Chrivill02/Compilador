@@ -2,21 +2,19 @@ import Analizador_lexico
 
 #Ejemplo de uso
 
-codigo_fuente = """
+codigo_fuente = """"
 int suma(int a, int b) {
     
     int x = a + b * 2;
     int y = x - 5;
     
-    for (int i=3; i>0; i--){
-        print(i);
-    }
     if (x > 2){
         print(x);
     }       
     else if (x<2) {
         print(1);
-    }    
+    }   
+ }
     else{
         print(0);
     }

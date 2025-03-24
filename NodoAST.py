@@ -14,6 +14,9 @@ class NodoPrograma(NodoAST):
     def __init__(self, funciones):
         self.funciones = funciones  # Lista de funciones
 
+    def generar_codigo(self):
+        return "\n".join(funcion.generar_codigo() for funcion in self.funciones)
+
 class NodoFuncion(NodoAST):
     def __init__(self, nombre, parametros, cuerpo):
         self.nombre = nombre
@@ -25,7 +28,11 @@ class NodoFuncion(NodoAST):
         cuerpo = "\n      ".join(c.traducir() for c in self.cuerpo)
         return f"def {self.nombre[1]} ({params}):\n   {cuerpo}"
     
+    def generar_codigo(self):
 
+        codigo = f"{self.nombre[1]}: \n"
+        codigo += "\n".join(c.generar_codigo() for c in self.cuerpo)
+        return codigo
 
 class NodoParametro(NodoAST):
         
@@ -42,7 +49,7 @@ class NodoAsignacion(NodoAST):
         self.expresion = expresion
     
     def traducir(self):
-        return f"{self.nombre} = {self.expresion.traducir()}"}
+        return f"{self.nombre} = {self.expresion.traducir()}"
 
     def generar_codigo(self):
         codigo = self.expresion.generar_codigo()
@@ -68,6 +75,8 @@ class NodoOperacion(NodoAST):
             codigo.append("         add eax, ebx; eax + ebx")
         elif self.operador[1] == "-":
             codigo.append("    sub ebx, eax; eax - ebx")
+        
+        return
 
     def traducir(self):
         return f"{self.izquierda.traducir()[1]} {self.operador[1]} {self.derecha.traducir()[1]}"
@@ -121,8 +130,15 @@ class NodoIdentificador(NodoAST):
     def traducir(self):
         return self.nombre[1]
 
-    def generar_codigo():
-        return f"         mov eax, {self.nombre[1]}; cargar variable {self.nombre[1]} en eax" 
+    def generar_codigo(self):
+        if self.nombre is None or not isinstance(self.nombre, str):
+            raise ValueError("Error: self.nombre debe ser una cadena válida")
+        if len(self.nombre) > 1:
+            return f"         mov eax, {self.nombre[1]}; cargar variable {self.nombre[1]} en eax"
+        else:
+            return f"         mov eax, {self.nombre}; cargar variable {self.} en eax"
+        
+      
 
 class NodoNumero(NodoAST):
     def __init__(self, valor):
@@ -166,61 +182,31 @@ def imprimir_ast(nodo):
                 'Cuerpo': [imprimir_ast(c) for c in nodo.cuerpo]}
     return {}
 
-funcionmain = NodoFuncion("Main", 
-    [NodoParametro("int", "a"), NodoParametro("int", "b")], 
-    [
-        NodoAsignacion("resultado", NodoOperacion(NodoIdentificador("a"), "+", NodoIdentificador("b"))),
-        NodoAsignacion("doble", NodoOperacion(NodoIdentificador("resultado"), "*", NodoNumero(2))),
-        NodoRetorno(NodoIdentificador("doble"))
-    ]
-)
+funcionC = " int suma(int a, int b) {
+    
+    int x = a + b * 2;
+    int y = x - 5;
+    
+    if (x > 2){
+        print(x);
+    }       
+    else if (x<2) {
+        print(1);
+    }   
+ }
+"
 
-funcion2 = NodoFuncion("restar_y_cuadrado", 
-    [NodoParametro("int", "x"), NodoParametro("int", "y")], 
-    [
-        NodoAsignacion("resta", NodoOperacion(NodoIdentificador("x"), "-", NodoIdentificador("y"))),
-        NodoAsignacion("cuadrado", NodoOperacion(NodoIdentificador("resta"), "*", NodoIdentificador("resta"))),
-        NodoRetorno(NodoIdentificador("cuadrado"))
-    ]
-)
 
-funcion3 = NodoFuncion("incrementar_hasta_limite",
-    [NodoParametro("int", "n"), NodoParametro("int", "limite")],
-    [
-        NodoAsignacion("contador", NodoIdentificador("n")),
-        NodoWhile(
-            NodoOperacion(NodoIdentificador("contador"), "<", NodoIdentificador("limite")),
-            [
-                NodoAsignacion("contador", NodoOperacion(NodoIdentificador("contador"), "+", NodoNumero(1)))
-            ]
-        ),
-        NodoRetorno(NodoIdentificador("contador"))
-    ]
-)
+#programa = NodoPrograma([funcionmain, funcion2, funcion3, funcion4])  # Nodo raíz con múltiples funciones
 
-funcion4 = NodoFuncion("multiplicar_en_bucle",
-    [NodoParametro("int", "base"), NodoParametro("int", "veces")],
-    [
-        NodoAsignacion("resultado", NodoNumero(1)),
-        NodoWhile(
-            NodoOperacion(NodoIdentificador("veces"), ">", NodoNumero(0)),
-            [
-                NodoAsignacion("resultado", NodoOperacion(NodoIdentificador("resultado"), "*", NodoIdentificador("base"))),
-                NodoAsignacion("veces", NodoOperacion(NodoIdentificador("veces"), "-", NodoNumero(1)))
-            ]
-        ),
-        NodoRetorno(NodoIdentificador("resultado"))
-    ]
-)
-
-programa = NodoPrograma([funcionmain, funcion2, funcion3, funcion4])  # Nodo raíz con múltiples funciones
-
+programa = NodoPrograma(funcionC)
 # Imprimir el AST
 #print(json.dumps(imprimir_ast(programa), indent=2))
-
+"""
 
 nodo_exp = NodoOperacion(NodoNumero(5), "+", NodoNumero(8))
 print(json.dumps(imprimir_ast(nodo_exp), indent=1))
-arbol_ast = NodoAST()
-codigo_python = arbol_ast.traducir()
-print(codigo_python)
+"""
+
+codigo_asm = programa.generar_codigo()
+print(codigo_asm)
