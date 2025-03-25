@@ -182,7 +182,7 @@ def imprimir_ast(nodo):
                 'Cuerpo': [imprimir_ast(c) for c in nodo.cuerpo]}
     return {}
 
-funcionC = " int suma(int a, int b) {
+funcionC = """ int suma(int a, int b) {
     
     int x = a + b * 2;
     int y = x - 5;
@@ -194,7 +194,7 @@ funcionC = " int suma(int a, int b) {
         print(1);
     }   
  }
-"
+"""
 
 
 #programa = NodoPrograma([funcionmain, funcion2, funcion3, funcion4])  # Nodo raíz con múltiples funciones
