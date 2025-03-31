@@ -423,3 +423,20 @@ print(json.dumps(imprimir_ast(arbol_ast), indent=1))
 codigo_asm = arbol_ast.generar_codigo()
 print("\nCódigo Ensamblador Generado:")
 print(codigo_asm)
+
+
+
+#------------------------------Analisis Semántico-----------------------------------------------------
+class AnalizadorSemantico:
+    def __init__(self):
+        self.tabla_simbolos = {}
+    
+    def analizar(self, nodo):
+        metodo = f"Visitar:{type(nodo).__name__}"
+        if hasattr(self,metodo)(nodo):
+            return getattr(self, metodo)(nodo)
+        else:
+            raise Exception(f"No se ha implementado el análisis semántico para {type(nodo)}.__name__")
+
+    def visitar_NodoFuncion(self,nodo):
+        
