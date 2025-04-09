@@ -1,105 +1,111 @@
-#------------------------------Analisis Semántico-----------------------------------------------------
+# ------------------------------Analisis Semántico-----------------------------------------------------
 from NodosAST import *
 
 class AnalizadorSemantico:
     def __init__(self):
-        self.tabla_simbolos = TablaSimbolos()
-    
+        self.tabla_simbolos = {}
+        self.errores = []
+        self.palabras_reservadas = {"int", "float", "string", "if", "else", "while", "for", "return", "print"}
+
     def analizar(self, nodo):
-        if isinstance(nodo, NodoAsignacion):
-            tipo_expr = self.analizar(nodo.expresion)
-            self.tabla_simbolos.declarar_variable(nodo.nombre,tipo_expr)
-        elif isinstance(nodo,NodoIdentificador):
-            return self.tabla_simbolos.obtener_tipo_variable(nodo.nombre)
-
-        elif isinstance(nodo, NodoNumero):
-            return "int"
         
-        elif isinstance(nodo, NodoOperacion):
-            tipo_izq = self.analizar(nodo.izquierda)
-            tipo_der = self.analizar(nodo.derecha)
-            if tipo_izq != tipo_der:
-                raise Exception(f"Error: tipos incompatibles en operacion {tipo_izq} {nodo.operador}")
 
-            return tipo_izq
 
-        if isinstance(nodo, NodoFuncion):
-            self.tabla_simbolos.declarar_funcion(nodo.nombre, nodo.tipo_retorno, nodo.parametros)
-            for instruccion in nodo.cuerpo:
-                self.analizar(instruccion)
-
-        if isinstance(nodo, NodoLlamadaFuncion):
-            tipo_retorno, parametros = self.tabla_simbolos.obtener_info_funcion(nodo.nombre)
-            if len(nodo.argumentos) != len(parametros):
-                raise Exception(f"Error: la funcion {nodo.nombre} espera {len(parametros)} argumentos")
-            return tipo_retorno
-    
         if isinstance(nodo, NodoPrograma):
-            for funcion in nodo.funciones:
-                self.analizar(funcion)
-            self.analizar(nodo.main)
-        
-    def visitar_NodoFuncion(self,nodo):
-        if nodo.nombre[1] in self.tabla_simbolos:
-            raise Exception(f"Error semántico: la función {nodo.nombre[1]} ya está definida")
-        
-        self.tabla_simbolos[nodo.nombre[1]] = {"tipo": nodo.parametros[0].tipo[1], "parametros":nodo.parametros}
-        for param in nodo.parametros:
-            self.tabla_simbolos[param.nombre[1]] = {"tipo": param.tipo[1]} 
-        
-        for instruccion in nodo.cuerpo:
-            self.analizar(instruccion)
+            for decl in nodo.funciones:  # ← ¡cambio importante aquí!
+                self.analizar(decl)
 
-    def visitar_NodoAsignacion(self, nodo):
-        tipo_expresion = self.analizar(nodo.expresion)
-        self.tabla_simbolos[nodo.nombre[1]] = {"tipo": tipo_expresion}
+        elif isinstance(nodo, NodoFuncion):
+            self.analizar_bloque(nodo.cuerpo)
 
-    def visitar_NodoOperacion(self,nodo):
-        tipo_izquierda = self.analizar(nodo.izquierda)
-        tipo_derecha = self.analizar(nodo.derecha)
+        if isinstance(nodo, NodoDeclaracion):
+            for i, nombre in enumerate(nodo.nombres):
+                if nombre in self.palabras_reservadas:
+                    self.errores.append(f"Error: '{nombre}' es una palabra reservada y no puede ser una variable")
+                elif nombre in self.tabla_simbolos:
+                    self.errores.append(f"Error: variable '{nombre}' ya ha sido declarada")
+                else:
+                    self.tabla_simbolos[nombre] = nodo.tipo
+                
+                # Si hay una expresión de inicialización, analizarla
+                if i < len(nodo.valores):
+                    valor = nodo.valores[i]
+                    if valor is not None:
+                        self.analizar(valor)
 
-        if tipo_izquierda != tipo_derecha:
-            raise Exception(f"Error semántico: Operacion entre tipos incompatibles")
 
-        return tipo_izquierda
+        elif isinstance(nodo, NodoAsignacion):
+            if nodo.nombre[1] not in self.tabla_simbolos:
+                self.errores.append(f"Error: variable '{nodo.nombre[1]}' no declarada")
+            self.analizar(nodo.expresion)
 
-    def visitar_NodoNumero(self, nodo):
-        return "int" if "." not in nodo.valor[1] else "float"
-    
-    def visitar_NodoIdentificador(self, nodo):
-        if nodo.nombre[1] not in self.tabla_simbolos:
-            raise Exception(f"Error semántico: La variable {nodo.nombre[1]} no es igual")
-        
-        return self.tabla_simbolos[nodo.nombre[1]]["Tipo"]
-    
-    def visitar_NodoRetorno(self, nodo):
-        return self.analizar(nodo.expresion)
+        elif isinstance(nodo, NodoOperacion) or isinstance(nodo, NodoOperacionLogica):
+            self.analizar(nodo.izquierda)
+            self.analizar(nodo.derecha)
 
+        elif isinstance(nodo, NodoIf):
+            self.analizar(nodo.condicion)
+            self.analizar_bloque(nodo.cuerpo_if)
+            self.analizar_bloque(nodo.cuerpo_else)
+
+        elif isinstance(nodo, NodoWhile):
+            self.analizar(nodo.condicion)
+            self.analizar_bloque(nodo.cuerpo)
+
+        elif isinstance(nodo, NodoFor):
+            self.analizar(nodo.inicializacion)
+            self.analizar(nodo.condicion)
+            self.analizar(nodo.incremento)
+            self.analizar_bloque(nodo.cuerpo)
+
+        elif isinstance(nodo, NodoLlamadaFuncion):
+            for arg in nodo.argumentos:
+                self.analizar(arg)
+
+        elif isinstance(nodo, NodoRetorno):
+            self.analizar(nodo.expresion)
+
+        elif isinstance(nodo, NodoIdentificador):
+            if nodo.nombre[1] not in self.tabla_simbolos:
+                self.errores.append(f"Error: variable '{nodo.nombre[1]}' no declarada")
+
+        # No hace falta analizar NodoNumero ni NodoString, son valores constantes
+
+    def analizar_bloque(self, instrucciones):
+        for inst in instrucciones:
+            self.analizar(inst)
+
+
+
+
+# ------------------------------Tabla de Símbolos-----------------------------------------------------
 class TablaSimbolos:
     def __init__(self):
-        self.variables = {} #Almacena variables {nombre: tipo}
-        self.funciones = {} #Almacena funciones {nombre: {tipo_retorno {parametros}}}
+        self.variables = {}  # Almacena variables {nombre: tipo}
+        self.funciones = {}  # Almacena funciones {nombre: {tipo_retorno, parametros}}
+        self.reservadas = {'int', 'float', 'if', 'for', 'else', 'return', 'print'}  # Palabras reservadas
 
     def declarar_variable(self, nombre, tipo):
+        if nombre in self.reservadas:
+            raise Exception(f"Error: '{nombre}' es una palabra reservada y no puede ser una variable")
         if nombre in self.variables:
             raise Exception(f"Error: Variable {nombre} ya declarada")
         self.variables[nombre] = tipo
 
     def obtener_tipo_variable(self, nombre):
         if nombre not in self.variables:
-            raise Exception(f"Error variable {nombre} no declarado")
+            raise Exception(f"Error: Variable {nombre} no declarada")
         return self.variables[nombre]
 
     def declarar_funcion(self, nombre, tipo_retorno, parametros):
+        if nombre in self.reservadas:
+            raise Exception(f"Error: '{nombre}' es una palabra reservada y no puede ser una función")
         if nombre in self.funciones:
             raise Exception(f"Error: función {nombre} ya declarada")
-        self.funciones[nombre] = {tipo_retorno, parametros}
+        self.funciones[nombre] = {"tipo_retorno": tipo_retorno, "parametros": parametros}
 
     def obtener_info_funcion(self, nombre):
         if nombre not in self.funciones:
-            raise Exception(f"Error: {nombre} no declarada")
+            raise Exception(f"Error: Función {nombre} no declarada")
         return self.funciones[nombre]
-    
-
-
 

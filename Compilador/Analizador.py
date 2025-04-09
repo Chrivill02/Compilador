@@ -82,7 +82,9 @@ class Parser:
         self.coincidir('DELIMITER')  # '{'
         cuerpo = self.cuerpo()
         self.coincidir('DELIMITER')  # '}'
-        return NodoFuncion(nombre_funcion[1], parametros, cuerpo)
+        return NodoFuncion(nombre_funcion[1], parametros, cuerpo, tipo_retorno[1])
+
+
     
     def verificar(self, tipo_token):
         if self.pos < len(self.tokens):
@@ -123,9 +125,13 @@ class Parser:
         if self.verificar('OPERATOR') and self.ver_token()[1] == '=':
             self.coincidir('OPERATOR')
             valores.append(self.expresion())
-        
+
         self.coincidir('DELIMITER')  # ;
-        return NodoDeclaracion(tipo, nombres, valores)
+
+        nodo = NodoDeclaracion(tipo, nombres, valores)
+
+        return nodo
+
 
 
 
@@ -357,6 +363,8 @@ class Parser:
 # === Ejemplo de Uso ===
 codigo_fuente = """
     int sumar(int a, int b) {
+        int a = 2;
+        int b = 3;
         int resultado = a + b;
         return resultado;
     }
@@ -364,7 +372,7 @@ codigo_fuente = """
     int main() {
         int x = 5;
         int y = 3;
-        return X;
+        return x;
     }
     """
 

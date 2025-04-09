@@ -23,11 +23,13 @@ class NodoPrograma(NodoAST):
         codigo += "    num_buffer resb 12\n"
         
         return codigo
-class NodoFuncion(NodoAST):
-    def __init__(self, nombre, parametros, cuerpo):
+class NodoFuncion:
+    def __init__(self, nombre, parametros, cuerpo, tipo_retorno):
         self.nombre = nombre
         self.parametros = parametros
         self.cuerpo = cuerpo
+        self.tipo_retorno = tipo_retorno
+
         
     def traducir(self):
         params = ", ".join(p.traducir() for p in self.parametros)
@@ -214,16 +216,25 @@ class NodoString(NodoAST):
     def generar_codigo(self):
         return f'    mov eax, {self.valor[1]} ; cargar string'
 
-class NodoDeclaracion(NodoAST):
-    def __init__(self, tipo, nombre):
+"""class NodoDeclaracion(NodoAST):
+    def __init__(self, tipo, nombres, valores=None):
         self.tipo = tipo
-        self.nombre = nombre
-        
+        self.nombres = nombres
+        self.valores = valores or []
+  
+    
+
+    def __repr__(self):
+        return f"NodoDeclaracion(tipo={self.tipo}, nombres={self.nombres}, valores={self.valores})"
+
+
     def traducir(self):
-        return f"{self.tipo} {self.nombre};"
-        
+        return "; ".join(f"{self.tipo} {nombre}" for nombre in self.nombres) + ";"
+
     def generar_codigo(self):
-        return f"; Declaración de variable: {self.tipo} {self.nombre}"
+        return "\n".join(f"; Declaración de variable: {self.tipo} {nombre}" for nombre in self.nombres)"""
+
+
 
 class NodoIf(NodoAST):
     def __init__(self, condicion, cuerpo_if, cuerpo_else=None):
@@ -403,10 +414,18 @@ class NodoPrint(NodoAST):
         
         return "\n".join(codigo)    
 class NodoDeclaracion(NodoAST):
-    def __init__(self, tipo, nombre, expresion=None):
+    
+    
+    def __init__(self, tipo, nombres, valores=None):
         self.tipo = tipo
-        self.nombre = nombre
-        self.expresion = expresion
+        self.nombres = nombres
+        self.valores = valores if valores else []
+
+    def __repr__(self):
+        return f"NodoDeclaracion(tipo={self.tipo}, nombres={self.nombres}, valores={self.valores})"
+
+
+
         
     def traducir(self):
         if self.expresion:

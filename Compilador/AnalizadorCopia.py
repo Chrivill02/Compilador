@@ -96,6 +96,7 @@ class Parser:
         return NodoFuncion(nombre_funcion[1], parametros, cuerpo, tipo_retorno[1])
 
 
+
     def parametros(self):
         parametros = []
         # Reglas para parametros: KEYWORD IDENTIFIER (, KEYWORD IDENTIFIER)*
