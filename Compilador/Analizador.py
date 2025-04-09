@@ -83,30 +83,51 @@ class Parser:
         cuerpo = self.cuerpo()
         self.coincidir('DELIMITER')  # '}'
         return NodoFuncion(nombre_funcion[1], parametros, cuerpo)
+    
+    def verificar(self, tipo_token):
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos][0] == tipo_token
+        return False
+
+
+
+    def ver_token(self):
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        return None
+
+
 
     def parametros(self):
         parametros = []
-        while self.obtener_token_actual() and self.obtener_token_actual()[1] != ')':
-            tipo = self.coincidir('KEYWORD')
-            nombre = self.coincidir('IDENTIFIER')
-            parametros.append(NodoParametro(tipo[1], nombre[1]))
-            if self.obtener_token_actual() and self.obtener_token_actual()[1] == ',':
-                self.coincidir('DELIMITER')
+        if self.verificar('KEYWORD'):  # por ejemplo, 'int'
+            tipo = self.coincidir('KEYWORD')[1]
+            nombre = self.coincidir('IDENTIFIER')[1]
+            parametros.append((tipo, nombre))
+            while self.verificar('DELIMITER') and self.ver_token()[1] == ',':
+                self.coincidir('DELIMITER')  # coma
+                tipo = self.coincidir('KEYWORD')[1]
+                nombre = self.coincidir('IDENTIFIER')[1]
+                parametros.append((tipo, nombre))
         return parametros
 
+
     def declaracion(self):
-        tipo = self.coincidir('KEYWORD')
-        nombre = self.coincidir('IDENTIFIER')
-
-        if self.obtener_token_actual() and self.obtener_token_actual()[1] == '=':
+        tipo = self.coincidir('KEYWORD')[1]
+        nombres = [self.coincidir('IDENTIFIER')[1]]
+        while self.verificar('DELIMITER') and self.ver_token()[1] == ',':
+            self.coincidir('DELIMITER')  # coma
+            nombres.append(self.coincidir('IDENTIFIER')[1])
+        
+        valores = []
+        if self.verificar('OPERATOR') and self.ver_token()[1] == '=':
             self.coincidir('OPERATOR')
-            expresion = self.expresion_ing()
-            nodo = NodoAsignacion(nombre, expresion)
-        else:
-            nodo = NodoDeclaracion(tipo[1], nombre[1])
+            valores.append(self.expresion())
+        
+        self.coincidir('DELIMITER')  # ;
+        return NodoDeclaracion(tipo, nombres, valores)
 
-        self.coincidir('DELIMITER')
-        return nodo
+
 
     def asignacion(self):
         # Manejar ambos casos: con y sin tipo
@@ -258,6 +279,12 @@ class Parser:
         self.coincidir('DELIMITER')  # ';'
         
         return NodoPrint(argumentos)
+
+    def consumir(self):
+        if self.posicion < len(self.tokens):
+            self.posicion += 1
+
+
     def bucle_for(self):
         self.coincidir('KEYWORD')  # 'for'
         self.coincidir('DELIMITER')  # '('
@@ -267,7 +294,6 @@ class Parser:
         if token_actual[0] == 'KEYWORD' and token_actual[1] in ['int', 'float', 'double', 'char']:
             inicializacion = self.declaracion()
         else:
-            # Es una asignación sin declaración de tipo
             nombre = self.coincidir('IDENTIFIER')
             self.coincidir('OPERATOR')  # '='
             expresion = self.expresion_ing()
@@ -279,17 +305,20 @@ class Parser:
         self.coincidir('DELIMITER')  # ';'
         
         # Incremento
-        nombre = self.coincidir('IDENTIFIER')
+        incremento_nombre = self.coincidir('IDENTIFIER')
         self.coincidir('OPERATOR')  # '='
-        expresion = self.expresion_ing()
-        self.coincidir('DELIMITER')  # ')'
-        incremento = NodoAsignacion(nombre, expresion)
+        incremento_expr = self.expresion_ing()
+        incremento = NodoAsignacion(incremento_nombre, incremento_expr)
         
+        self.coincidir('DELIMITER')  # ')'
         self.coincidir('DELIMITER')  # '{'
+        
         cuerpo = self.cuerpo()
+        
         self.coincidir('DELIMITER')  # '}'
         
         return NodoFor(inicializacion, condicion, incremento, cuerpo)
+
     
     def return_statement(self):
         self.coincidir('KEYWORD')
@@ -327,21 +356,17 @@ class Parser:
 
 # === Ejemplo de Uso ===
 codigo_fuente = """
-void main() {
-    int i;
-    for(i = 0; i < 10; i = i + 1) {
-        print("Contador: ", i, "\n");
+    int sumar(int a, int b) {
+        int resultado = a + b;
+        return resultado;
     }
-    
-    int n = 5;
-    while(n > 0) {
-        print(n, "\n");
-        n = n - 1;
+
+    int main() {
+        int x = 5;
+        int y = 3;
+        return X;
     }
-    
-    return 0;
-}
-"""
+    """
 
 tokens = identificar_tokens(codigo_fuente)
 print("Tokens encontrados:")
@@ -418,12 +443,30 @@ def imprimir_ast(nodo):
     return {}
 
 parser = Parser(tokens)
-arbol_ast = parser.parsear()    
+arbol_ast = parser.parsear()  
+
+# 1. Análisis léxico
+tokens = identificar_tokens(codigo_fuente)
+
+# 2. Análisis sintáctico
+parser = Parser(tokens)
+ast = parser.parsear()
+
+# 3. Análisis semántico
+analizador_semantico = AnalizadorSemantico()
+try:
+    analizador_semantico.analizar(ast)
+    print("✅ Análisis semántico completado sin errores.")
+except Exception as e:
+    print(f"❌ Error semántico: {e}")
+
+"""""
 print(json.dumps(imprimir_ast(arbol_ast), indent=1))
 
 codigo_asm = arbol_ast.generar_codigo()
 print("\nCódigo Ensamblador Generado:")
 print(codigo_asm)
+
 
 analizador_semantico = AnalizadorSemantico()
 analisis = analizador_semantico.analizar(arbol_ast)
@@ -433,4 +476,4 @@ analizador_semantico.tabla_simbolos
 for llave in (analizador_semantico.tabla_simbolos.keys()):
     valor = analizador_semantico.tabla_simbolos.get(llave)
     print(f"{llave}:{valor}")
-        
+"""

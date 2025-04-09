@@ -93,7 +93,8 @@ class Parser:
         self.coincidir('DELIMITER')  # Se espera un '{'
         cuerpo = self.cuerpo()  # Analizar el cuerpo de la funcion
         self.coincidir('DELIMITER')  # Se espera un '}'
-        return NodoFuncion(nombre_funcion[1], parametros, cuerpo)
+        return NodoFuncion(nombre_funcion[1], parametros, cuerpo, tipo_retorno[1])
+
 
     def parametros(self):
         parametros = []
